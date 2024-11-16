@@ -1,1 +1,4 @@
-qrcode
+streamlit==1.40.1               # For building and running the web application
+qrcode                          # For generating QR codes
+cryptography                    # For AES encryption and decryption
+opencv-python-headless          # For reading QR codes
