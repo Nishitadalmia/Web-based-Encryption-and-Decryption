@@ -13,10 +13,8 @@ option = st.selectbox("Choose an action", ["Encrypt", "Decrypt"])
 if option == "Encrypt":
     st.header("File Encryption")
     plain_text = st.text_area("Enter the text you want to encrypt:")
-    passkey = st.text_input(
-        "Enter a passkey (10-20 characters, must include letters, digits, and special characters):",
-        type="password"
-    )
+    passkey = st.text_input("Enter a passkey (10-20 characters, must include letters, digits, and special characters):",
+                            type="password")
 
     if st.button("Encrypt Text"):
         if plain_text and len(passkey) >= 10 and len(passkey) <= 20:
@@ -34,26 +32,30 @@ if option == "Encrypt":
                 # Generate QR codes for XOR key and cipher text
                 xor_key_qr_buffer = generate_qr_code(base64.b64encode(xor_key).decode(), return_buffer=True)
                 text_qr_buffer = generate_qr_code(cipher_text, return_buffer=True)
-
+                # Save QR codes in session state
+                st.session_state.xor_key_qr_buffer = xor_key_qr_buffer
+                st.session_state.text_qr_buffer = text_qr_buffer
                 # Display success message and allow downloads
                 st.success("Encryption successful! Please download the QR codes below.")
-                
-                # Download buttons
-                st.download_button(
-                    label="Download XOR Key QR Code",
-                    data=xor_key_qr_buffer.getvalue(),
-                    file_name="xor_key_qr.png"
-                )
-                st.download_button(
-                    label="Download Encrypted Text QR Code",
-                    data=text_qr_buffer.getvalue(),
-                    file_name="encrypted_text_qr.png"
-                )
 
             except ValueError as e:
                 st.error(f"Error: {str(e)}")
         else:
             st.error("Please enter valid input text and a strong passkey.")
+
+    # Provide download buttons only if QR codes are generated
+    if 'xor_key_qr_buffer' in st.session_state and 'text_qr_buffer' in st.session_state:
+        st.download_button(
+            label="Download Key QR Code",
+            data=st.session_state.xor_key_qr_buffer.getvalue(),
+            file_name="encryption_key_qr.png"
+        )
+        st.download_button(
+            label="Download Encrypted Text QR Code",
+            data=st.session_state.text_qr_buffer.getvalue(),
+            file_name="encrypted_text_qr.png"
+        )
+
 
 if option == "Decrypt":
     st.header("File Decryption")
