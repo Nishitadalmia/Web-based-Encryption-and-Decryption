@@ -24,11 +24,15 @@ if option == "Encrypt":
                 # Derive a secure AES key from the passkey
                 aes_key = derive_key_from_passkey(passkey)
 
+                # Generate an XOR key by XORing the AES key with the passkey
+                passkey_bytes = passkey.encode()
+                xor_key = bytes(a ^ b for a, b in zip(aes_key, passkey_bytes.ljust(len(aes_key), b'\0')))
+
                 # Encrypt the plain text
                 cipher_text = aes_encrypt(plain_text, aes_key)
 
-                # Generate QR codes for encryption key and cipher text
-                key_qr_buffer = generate_qr_code(base64.b64encode(aes_key).decode(), return_buffer=True)
+                # Generate QR codes for XOR key and cipher text
+                xor_key_qr_buffer = generate_qr_code(base64.b64encode(xor_key).decode(), return_buffer=True)
                 text_qr_buffer = generate_qr_code(cipher_text, return_buffer=True)
 
                 # Display success message and allow downloads
@@ -36,9 +40,9 @@ if option == "Encrypt":
                 
                 # Download buttons
                 st.download_button(
-                    label="Download Key QR Code",
-                    data=key_qr_buffer.getvalue(),
-                    file_name="encryption_key_qr.png"
+                    label="Download XOR Key QR Code",
+                    data=xor_key_qr_buffer.getvalue(),
+                    file_name="xor_key_qr.png"
                 )
                 st.download_button(
                     label="Download Encrypted Text QR Code",
@@ -53,7 +57,7 @@ if option == "Encrypt":
 
 if option == "Decrypt":
     st.header("File Decryption")
-    key_qr = st.file_uploader("Upload the QR code image for the decryption key", type=["png", "jpg"])
+    key_qr = st.file_uploader("Upload the QR code image for the XOR key", type=["png", "jpg"])
     text_qr = st.file_uploader("Upload the QR code image for the encrypted text", type=["png", "jpg"])
     passkey = st.text_input(
         "Enter the passkey used during encryption:",
@@ -73,12 +77,12 @@ if option == "Decrypt":
                     text_qr_path = text_temp.name
 
                 # Read data from QR codes
-                aes_key = read_qr_code(key_qr_path)
-
-                # Ensure aes_key is in byte format, decode if it's base64 encoded
-                aes_key = base64.b64decode(aes_key)
-
+                xor_key = base64.b64decode(read_qr_code(key_qr_path))
                 cipher_text = read_qr_code(text_qr_path)
+
+                # Reconstruct AES key using XOR of passkey and XOR key
+                passkey_bytes = passkey.encode()
+                aes_key = bytes(a ^ b for a, b in zip(xor_key, passkey_bytes.ljust(len(xor_key), b'\0')))
 
                 # Decrypt the cipher text
                 decrypted_text = aes_decrypt(cipher_text, aes_key)
@@ -91,4 +95,3 @@ if option == "Decrypt":
                 st.error(f"Decryption failed: {str(e)}")
         else:
             st.error("Please upload both QR codes and enter the passkey.")
-
